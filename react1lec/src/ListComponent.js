@@ -1,37 +1,58 @@
-import React,{ useState } from "react";
+import React, { useState } from "react";
 import Listitem from "./Listitem";
+import ButtonComponent from "./ButtonComponent";
 
 const ListComponent = () => {
   const [input, setInput] = useState("");
   const [items, setItems] = useState([]);
 
   const onClickHandler = () => {
-    const newItem = {id:items.length+1, text: input};
-    setItems([...items, newItem]);
+    const updatedElement =  { id: items.length + 1, name: input };
+    setItems([...items,updatedElement]);
     setInput("");
   };
- 
-const onEnterKeyPress = (e)=> {
+
+  const onChangeHandler = (e) => {
+    const value = e.target.value;
+    setInput(value);
+  };
+  const onEnterKeyPress = (e) => {
     if (e.key === "Enter") {
-        onClickHandler();
+      onClickHandler();
     }
-}
+  };
+
+  const handleDelete = (id) => {
+    const filteredItems = items.filter((item)=> item.id !== id);
+    setItems(filteredItems)
+  };
 
   return (
     <>
-      <input 
-      onChange={(e)=> setInput(e.target.value)} 
-      onKeyDown={onEnterKeyPress}
-      value={input} 
-      placeholder="New Task" 
+      <input
+        onKeyDown={onEnterKeyPress}
+        onChange={onChangeHandler}
+        value={input}
+        placeholder="New Task"
       />
       <p>Total tasks: {items.length}</p>
       <ul>
-        {items.map((item) => (
-         <Listitem key={item.id} item ={item}/>
+        {items.map((element) => (
+          <Listitem 
+          key={element.id} 
+          id={element.id} 
+          name={element.name}>
+            {
+              <ButtonComponent
+                text={"delete"}
+                onClick={()=>handleDelete(element.id)}
+                type={"button"}
+              />
+            }
+          </Listitem>
         ))}
       </ul>
-      
+
       <button onClick={onClickHandler}>Add TO DO</button>
     </>
   );

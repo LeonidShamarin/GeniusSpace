@@ -1,13 +1,10 @@
 import React from "react";
 
-const Listitem = ({item}) => {
+const Listitem = (props) => {
   return (
     <>
-    
-      <li key={item.id}>
-        {item.text}
-        
-      </li>
+      <li key={props.id}>{props.name}</li>
+      {props.children}
     </>
   );
 };
