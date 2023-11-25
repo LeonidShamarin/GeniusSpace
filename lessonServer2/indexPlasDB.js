@@ -1,8 +1,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
+const sqlite3 = require("sqlite3").verbose();
 
+const dbName = "tasks.db";
 const port = 3000;
+
+const db = new sqlite3.Database(dbName);
 
 let tasks = [
   {
@@ -35,7 +39,10 @@ app.get("/", (req, res) => {
 });
 
 app.get("/tasks", (req, res) => {
-  return res.status(200).json(tasks);
+  db.all("SELECT * FROM tasks", (err, rows) => {
+    serverError(err, res);
+    return res.status(200).json(rows);
+  });
 });
 
 const checkExist = (task, res) => {
@@ -43,43 +50,58 @@ const checkExist = (task, res) => {
     return res.status(404).json({ message: "Task not found" });
   }
 };
+const serverError = (err, res) => {
+  if (err) {
+    //error:"Internal Server Error" - так правильно писати коли в продакшні
+    return res.status(500).json({ error: "error: err.message" });
+  }
+};
 
 app.post("/tasks", (req, res) => {
   // Отримати дані з тіла запиту
   const newTask = req.body;
   // Виконати операцію створення
-  tasks.push(newTask);
-  // Відповісти повідомленням про успіх або новоствореною задачею
-  return res.status(201).json(newTask);
+  // tasks.push(newTask);
+  db.run("INSERT INTO tasks (text) VALUES (?)", [newTask.text], function (err) {
+    serverError(err, res);
+    // Відповісти повідомленням про успіх або новоствореною задачею
+    return res.status(201).json({ id: this.lastID });
+  });
 });
 
 app.get("/tasks/:id", (req, res) => {
   const taskId = parseInt(req.params.id, 10);
   // Знаходимо завдання за отриманим індентифікатором
-  const foundTask = tasks.find((task) => task.id === taskId);
-  checkExist(foundTask, res);
-  return res.status(200).json(foundTask);
+  // const foundTask = tasks.find((task) => task.id === taskId);
+
+  db.get("SELECT * FROM tasks WHERE id =?", taskId, (err, row) => {
+    serverError(err, res);
+    checkExist(row, res);
+    return res.status(200).json(row);
+  });
 });
 
 app.put("/tasks/:id", (req, res) => {
   // Отримуємо дані з тіла запиту
-  const updatedTask = req.body;
+  const { text } = req.body;
   const taskId = parseInt(req.params.id, 10);
   // Знаходимо завдання за отриманим індентифікатором
-  const foundTask = tasks.find((task) => task.id === taskId);
-  checkExist(foundTask, res);
-  foundTask.text = updatedTask.text; // Оновлюємо текст завдання
-  return res.status(200).json(foundTask);
+
+  db.run("UPDATE tasks SET text =? WHERE id =?", [text, taskId], (err) => {
+    serverError(err, res);
+    return res.status(200).json({ id: taskId, text });
+  });
 });
 
 app.delete("/tasks/:id", (req, res) => {
   // Отримуємо індитифікатор завдання
   const taskId = parseInt(req.params.id);
   // Виконати операцію видалення
-  tasks = tasks.filter((t) => t.id !== taskId);
-  // Відповісти повідомленням про успіх
-  //*end() було
-  return res.status(204).send();
+  db.run("DELETE FROM tasks WHERE id =?", taskId, (err) => {
+    serverError(err, res);
+    // Відповісти повідомленням про успіх
+    return res.status(204).send();
+  });
 });
 
 app.listen(port, () => {
